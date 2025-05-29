@@ -38,7 +38,7 @@ if st.button("🚀 Launch New Game"):
         file_name = f"Game_{game_id}.xlsx"
         store = ExcelStore(file_name)
         store.create_game_file()
-        store.register_players(players)
+        store.register_player(players)
 
         st.success(f"New game {game_id} created and saved to {file_name}!")
         st.session_state["current_game"] = file_name
