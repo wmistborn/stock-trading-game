@@ -1,53 +1,52 @@
 # pages/0_Admin_Controls.py
 import streamlit as st
-import pandas as pd
-import os
-from utils.excel_store import ExcelStore
-from datetime import datetime
+from datetime import date
+import random
+import string
+from utils.excel_store import ExcelGameStore
 
-st.set_page_config(page_title="Admin Controls", page_icon="🛠️")
-st.title("🛠️ Admin Control Center")
-st.markdown("Create and configure a new game.")
+st.set_page_config(page_title="Admin Controls")
 
-# --- Create New Game ---
-st.subheader("🎮 Start a New Game")
-game_id = st.text_input("Game ID (4-digit code)", max_chars=4)
-start_date = st.date_input("Game Start Date", datetime.today())
-end_date = st.date_input("Game End Date")
-starting_cash = st.number_input("Starting Cash Per Player ($)", min_value=0.0, value=1000.0)
-max_trades_per_day = st.number_input("Max Trades Per Day", min_value=1, value=5)
+# ---------- Title ----------
+st.title("🛠️ Admin Controls — Create New Game")
 
-# --- Register Players ---
-st.markdown("### 👥 Register Players")
-player_input = st.text_area("Enter Player IDs and Names (one per line, format: ID,Name)")
+# ---------- Helper: Generate Game ID ----------
+def generate_game_id():
+    return ''.join(random.choices(string.digits, k=4))
 
-if st.button("🚀 Launch New Game"):
-    if not game_id or not player_input.strip():
-        st.error("Please enter a Game ID and register at least one player.")
+# ---------- New Game Form ----------
+with st.form("create_game_form"):
+    st.subheader("📋 Create a New Game")
+
+    # Game details
+    game_id = st.text_input("Game ID (leave blank to auto-generate)", value=generate_game_id())
+    players_input = st.text_area("Player Names (one per line)", placeholder="Alice\nBob\nCharlie")
+    starting_cash = st.number_input("Starting Cash", value=1000, min_value=100)
+    max_trades = st.number_input("Max Trades per Day", value=3, min_value=1)
+    start_date = st.date_input("Start Date", value=date.today())
+    end_date = st.date_input("End Date")
+
+    # Submit button
+    submitted = st.form_submit_button("🚀 Create Game")
+
+# ---------- Process Form Submission ----------
+if submitted:
+    players = [name.strip() for name in players_input.splitlines() if name.strip()]
+    
+    if not players:
+        st.error("You must enter at least one player.")
+    elif end_date < start_date:
+        st.error("End date must be after start date.")
     else:
-        # --- Parse Player Entries ---
-        players = []
-        for line in player_input.strip().split("\n"):
+        store = ExcelGameStore(game_id)
+
+        if store.game_exists():
+            st.warning(f"A game with ID {game_id} already exists.")
+        else:
             try:
-                pid, name = [x.strip() for x in line.split(",")]
-                players.append({"PlayerID": pid, "PlayerName": name, "CashBalance": starting_cash})
-            except:
-                st.warning(f"Invalid format: {line}")
+                store.create_game_file(players, starting_cash, max_trades, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
+                st.success(f"Game {game_id} created successfully!")
+                st.info("Players can now go to the Trade Submission page to start building their portfolios.")
+            except Exception as e:
+                st.error(f"Error creating game: {e}")
 
-        # --- Initialize Excel Store ---
-        file_name = f"Game_{game_id}.xlsx"
-        store = ExcelStore(file_name)
-        store.create_game_file()
-        store.register_player(players)
-
-        st.success(f"New game {game_id} created and saved to {file_name}!")
-        st.session_state["current_game"] = file_name
-
-# --- Load Existing Game ---
-st.subheader("📂 Load Existing Game")
-existing_games = [f for f in os.listdir(".") if f.startswith("Game_") and f.endswith(".xlsx")]
-selected_game = st.selectbox("Select a Game File", existing_games)
-
-if st.button("📥 Load Game"):
-    st.session_state["current_game"] = selected_game
-    st.success(f"Game {selected_game} loaded.")
