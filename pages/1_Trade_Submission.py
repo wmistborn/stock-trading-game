@@ -78,7 +78,7 @@ if player_id:
             price = float(row['Price'])
 
             if row['UseMarketPrice']:
-                price = get_price(symbol) or 0
+                price = get_latest_price(symbol) or 0
 
             store.log_transaction(player_id, symbol, trade_type, qty, price)
 
