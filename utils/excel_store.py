@@ -1,106 +1,75 @@
 import pandas as pd
+from openpyxl import load_workbook, Workbook
 from datetime import datetime
-import os
 
 class ExcelStore:
     def __init__(self, file_path):
         self.file_path = file_path
-        if not os.path.exists(file_path):
-            self._initialize_workbook()
-        self._load_workbook()
 
-    def _initialize_workbook(self):
-        data = {
-            'GameInfo': pd.DataFrame(columns=['GameID', 'StartDate', 'EndDate', 'StartingCash', 'MaxTrades']),
-            'Players': pd.DataFrame(columns=['PlayerID', 'PlayerName', 'CashBalance']),
-            'Portfolios': pd.DataFrame(columns=['PlayerID', 'StockSymbol', 'Quantity']),
-            'Transactions': pd.DataFrame(columns=['TransactionID', 'PlayerID', 'StockSymbol', 'TradeType', 'Quantity', 'Price', 'TradeDate']),
-            'MarketPrices': pd.DataFrame(columns=['StockSymbol', 'Price', 'RetrievedAt'])
-        }
-        with pd.ExcelWriter(self.file_path, engine='openpyxl') as writer:
-            for sheet, df in data.items():
-                df.to_excel(writer, sheet_name=sheet, index=False)
+    def create_game_file(self):
+        wb = Workbook()
 
-    def _load_workbook(self):
-        self.workbook = pd.read_excel(self.file_path, sheet_name=None)
+        wb.create_sheet("GameInfo", 0)
+        wb["GameInfo"].append(["GameID", "StartDate", "EndDate", "StartingCash", "MaxTradesPerDay"])
 
-    def save(self):
-        with pd.ExcelWriter(self.file_path, engine='openpyxl', mode='w') as writer:
-            for sheet_name, df in self.workbook.items():
-                df.to_excel(writer, sheet_name=sheet_name, index=False)
+        wb.create_sheet("Players", 1)
+        wb["Players"].append(["PlayerID", "PlayerName", "CashBalance"])
+
+        wb.create_sheet("Transactions", 2)
+        wb["Transactions"].append(["PlayerID", "StockSymbol", "TradeType", "Quantity", "Price", "TradeDate"])
+
+        wb.create_sheet("Portfolios", 3)
+        wb["Portfolios"].append(["PlayerID", "StockSymbol", "Quantity", "LatestPrice", "LastUpdated"])
+
+        wb.save(self.file_path)
+
+    def _read_sheet(self, sheet_name):
+        return pd.read_excel(self.file_path, sheet_name=sheet_name)
+
+    def _write_sheet(self, df, sheet_name):
+        with pd.ExcelWriter(self.file_path, engine='openpyxl', mode='a', if_sheet_exists='replace') as writer:
+            df.to_excel(writer, sheet_name=sheet_name, index=False)
 
     def register_player(self, player_id, player_name, starting_cash):
-        players = self.workbook['Players']
-        if player_id not in players['PlayerID'].values:
-            players.loc[len(players)] = [player_id, player_name, starting_cash]
-            self.workbook['Players'] = players
-            self.save()
+        df = self._read_sheet("Players")
+        new_row = pd.DataFrame([[player_id, player_name, starting_cash]], columns=df.columns)
+        df = pd.concat([df, new_row], ignore_index=True)
+        self._write_sheet(df, "Players")
+
+    def insert_trade(self, player_id, symbol, trade_type, quantity, price):
+        df = self._read_sheet("Transactions")
+        new_row = pd.DataFrame([[player_id, symbol, trade_type, quantity, price, datetime.now()]], columns=df.columns)
+        df = pd.concat([df, new_row], ignore_index=True)
+        self._write_sheet(df, "Transactions")
 
     def get_cash_balance(self, player_id):
-        players = self.workbook['Players']
-        row = players[players['PlayerID'] == player_id]
-        if row.empty:
-            return 0.0
-        return float(row.iloc[0]['CashBalance'])
+        df = self._read_sheet("Players")
+        row = df[df["PlayerID"] == player_id]
+        return float(row["CashBalance"].values[0]) if not row.empty else 0.0
 
     def get_held_shares(self, player_id, symbol):
-        portfolios = self.workbook['Portfolios']
-        row = portfolios[(portfolios['PlayerID'] == player_id) & (portfolios['StockSymbol'] == symbol)]
-        if row.empty:
-            return 0
-        return int(row.iloc[0]['Quantity'])
-
-    def log_transaction(self, player_id, symbol, trade_type, quantity, price):
-        tx = self.workbook['Transactions']
-        tx_id = len(tx) + 1
-        tx.loc[len(tx)] = [tx_id, player_id, symbol, trade_type, quantity, price, datetime.now()]
-        self.workbook['Transactions'] = tx
-        self.save()
-
-    def update_after_trades(self):
-        players = self.workbook['Players']
-        portfolios = self.workbook['Portfolios']
-        tx = self.workbook['Transactions']
-
-        portfolios = portfolios.groupby(['PlayerID', 'StockSymbol'], as_index=False)['Quantity'].sum()
-        tx['Value'] = tx['Quantity'] * tx['Price']
-
-        # Recalculate CashBalance per player
-        tx['SignedValue'] = tx.apply(lambda x: -x['Value'] if x['TradeType'] == 'Buy' else x['Value'], axis=1)
-        cash_balances = tx.groupby('PlayerID')['SignedValue'].sum().reset_index()
-
-        for idx, row in cash_balances.iterrows():
-            player_id = row['PlayerID']
-            delta = row['SignedValue']
-            players.loc[players['PlayerID'] == player_id, 'CashBalance'] += delta
-
-        self.workbook['Players'] = players
-        self.workbook['Portfolios'] = portfolios
-        self.save()
+        df = self._read_sheet("Portfolios")
+        row = df[(df["PlayerID"] == player_id) & (df["StockSymbol"] == symbol)]
+        return int(row["Quantity"].values[0]) if not row.empty else 0
 
     def get_player_portfolio(self, player_id):
-        portfolios = self.workbook['Portfolios']
-        market_prices = self.workbook.get('MarketPrices', pd.DataFrame(columns=['StockSymbol', 'Price']))
-
-        holdings = portfolios[portfolios['PlayerID'] == player_id].copy()
-        holdings = holdings.merge(market_prices, on='StockSymbol', how='left')
-        holdings['Value'] = holdings['Quantity'] * holdings['Price']
-
-        return holdings[['StockSymbol', 'Quantity', 'Price', 'Value']]
+        df = self._read_sheet("Portfolios")
+        df = df[df["PlayerID"] == player_id].copy()
+        if df.empty:
+            return pd.DataFrame(columns=["StockSymbol", "Shares", "Value"])
+        df["Shares"] = df["Quantity"]
+        df["Value"] = round(df["Quantity"] * df["LatestPrice"], 2)
+        return df[["StockSymbol", "Shares", "Value"]]
 
     def get_leaderboard(self):
-        players = self.workbook['Players']
-        portfolios = self.workbook['Portfolios']
-        prices = self.workbook.get('MarketPrices', pd.DataFrame(columns=['StockSymbol', 'Price']))
+        players_df = self._read_sheet("Players")
+        portfolios_df = self._read_sheet("Portfolios")
 
-        merged = portfolios.merge(prices, on='StockSymbol', how='left')
-        merged['Value'] = merged['Quantity'] * merged['Price']
-        port_vals = merged.groupby('PlayerID')['Value'].sum().reset_index(name='PortfolioValue')
-
-        leaderboard = players.merge(port_vals, on='PlayerID', how='left')
-        leaderboard['PortfolioValue'] = leaderboard['PortfolioValue'].fillna(0)
-        leaderboard['NetWorth'] = leaderboard['CashBalance'] + leaderboard['PortfolioValue']
-        return leaderboard[['PlayerID', 'PlayerName', 'CashBalance', 'PortfolioValue', 'NetWorth']].sort_values(by='NetWorth', ascending=False)
+        portfolios_df["Value"] = portfolios_df["Quantity"] * portfolios_df["LatestPrice"]
+        grouped = portfolios_df.groupby("PlayerID")["Value"].sum().reset_index()
+        merged = players_df.merge(grouped, on="PlayerID", how="left").fillna(0)
+        merged["NetWorth"] = merged["CashBalance"] + merged["Value"]
+        return merged.sort_values("NetWorth", ascending=False)[["PlayerID", "PlayerName", "CashBalance", "Value", "NetWorth"]]
 
     def set_market_price(self, symbol, price):
         mp = self.workbook['MarketPrices']
