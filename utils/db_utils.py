@@ -15,7 +15,7 @@ def insert_trade(player_id, symbol, trade_type, quantity, price):
     cursor = conn.cursor()
     cursor.execute("""
         INSERT INTO Transactions (PlayerID, StockSymbol, TradeType, Quantity, Price, TradeDate, CreatedAt)
-        VALUES (?, ?, ?, ?, ?, ?)
+        VALUES (?, ?, ?, ?, ?, ?, ?)
     """, player_id, symbol, trade_type, quantity, price, datetime.now(), datetime.now())
     conn.commit()
     conn.close()
@@ -63,12 +63,11 @@ def get_player_portfolio(player_id):
 def get_leaderboard_data():
     conn = get_connection()
     query = """
-        SELECT PlayerID,
-               PlayerName,
+        SELECT PlayerName,
                CashBalance,
                PortfolioValue,
                (CashBalance + PortfolioValue) AS NetWorth
-        FROM PlayerSummaries
+        FROM vw_Leaderboard
         ORDER BY NetWorth DESC
     """
     df = pd.read_sql(query, conn)
