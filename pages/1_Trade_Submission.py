@@ -87,5 +87,24 @@ if submit:
             "Status": "Valid",
             "Notes": ""
         }
+        # Append Valid Trades
         store.append_trades(pd.DataFrame([trade_row]))
-        st.success(f"✅ Trade submitted successfully at ${price} per share.")
+        
+        # 🔄 Update cash in Leaderboard
+        leaderboard = store.read_sheet("Leaderboard")
+        current_row = leaderboard[leaderboard["Player"] == player].index[0]
+
+        trade_value = shares * price
+        if action == "BUY":
+            leaderboard.loc[current_row, "Cash"] -= trade_value
+        elif action == "SELL":
+            leaderboard.loc[current_row, "Cash"] += trade_value
+
+        leaderboard.loc[current_row, "Cash"] = round(leaderboard.loc[current_row, "Cash"], 2)
+        leaderboard["NetWorth"] = leaderboard["Cash"] + leaderboard["PortfolioValue"]
+        leaderboard["NetWorth"] = leaderboard["NetWorth"].round(2)
+
+        store.update_leaderboard(leaderboard)
+
+        st.success(f"✅ Trade submitted successfully at ${price:.2f} per share.")
+        st.info(f"💰 {player}'s cash balance updated to ${leaderboard.loc[current_row, 'Cash']:.2f}")
