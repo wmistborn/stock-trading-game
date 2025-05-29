@@ -4,3 +4,5 @@ numpy
 yfinance
 openpyxl
 requests
+black
+watchdog
