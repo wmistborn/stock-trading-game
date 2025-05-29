@@ -3,4 +3,4 @@ pandas
 pyodbc
 yfinance
 openpyxl
-os
+
