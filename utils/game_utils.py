@@ -1,37 +1,35 @@
 # utils/game_utils.py
-import pyodbc
-from datetime import datetime
+import pandas as pd
 
-# --- SQL Connection ---
-def get_connection():
-    return pyodbc.connect(
-        r"DRIVER={SQL Server};SERVER=WBrocat_2\TESTSERVER;DATABASE=TEST_2;Trusted_Connection=yes;"
-    )
+def initialize_portfolio(players, starting_cash):
+    """Create an empty holdings DataFrame for all players."""
+    data = []
+    for player in players:
+        data.append({"Player": player, "Cash": starting_cash, "PortfolioValue": 0.0})
+    return pd.DataFrame(data)
 
-# --- Initialize a New Game ---
-def start_new_game(game_id, start_date, end_date, starting_cash):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        INSERT INTO GameInfo (GameID, StartDate, EndDate, StartingCash, CreatedAt)
-        VALUES (?, ?, ?, ?, ?)
-    """, game_id, start_date, end_date, starting_cash, datetime.now())
-    conn.commit()
-    conn.close()
+def update_portfolio(holdings_df, transactions_df, price_lookup):
+    """Update portfolio values and cash balances."""
+    holdings = holdings_df.copy()
+    for player in holdings["Player"]:
+        player_trades = transactions_df[transactions_df["Player"] == player]
+        player_holdings = {}
 
-# --- Register New Player ---
-def register_player(player_id, player_name, game_id):
-    conn = get_connection()
-    cursor = conn.cursor()
-    cursor.execute("""
-        DECLARE @StartingCash DECIMAL(18,2);
-        SELECT @StartingCash = StartingCash FROM GameInfo WHERE GameID = ?;
+        cash = holdings.loc[holdings["Player"] == player, "Cash"].values[0]
+        for _, row in player_trades.iterrows():
+            symbol = row["StockSymbol"]
+            shares = row["Shares"]
+            price = price_lookup.get(symbol, 0)
+            total_cost = shares * price
+            if row["Action"] == "BUY":
+                cash -= total_cost
+                player_holdings[symbol] = player_holdings.get(symbol, 0) + shares
+            elif row["Action"] == "SELL":
+                cash += total_cost
+                player_holdings[symbol] = player_holdings.get(symbol, 0) - shares
 
-        INSERT INTO Players (PlayerID, PlayerName, GameID, CreatedAt)
-        VALUES (?, ?, ?, ?);
+        portfolio_value = sum(price_lookup.get(sym, 0) * qty for sym, qty in player_holdings.items())
+        holdings.loc[holdings["Player"] == player, "PortfolioValue"] = round(portfolio_value, 2)
+        holdings.loc[holdings["Player"] == player, "Cash"] = round(cash, 2)
 
-        INSERT INTO PlayerSummaries (PlayerID, GameID, CashBalance, PortfolioValue)
-        VALUES (?, ?, @StartingCash, 0);
-    """, game_id, player_id, player_name, game_id, datetime.now(), player_id, game_id)
-    conn.commit()
-    conn.close()
+    return holdings
