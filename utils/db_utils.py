@@ -14,9 +14,9 @@ def insert_trade(player_id, symbol, trade_type, quantity, price):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        INSERT INTO Transactions (PlayerID, StockSymbol, TradeType, Quantity, Price, TradeDate)
+        INSERT INTO Transactions (PlayerID, StockSymbol, TradeType, Quantity, Price, TradeDate, CreatedAt)
         VALUES (?, ?, ?, ?, ?, ?)
-    """, player_id, symbol, trade_type, quantity, price, datetime.now())
+    """, player_id, symbol, trade_type, quantity, price, datetime.now(), datetime.now())
     conn.commit()
     conn.close()
 
@@ -25,7 +25,7 @@ def get_cash_balance(player_id):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT CashBalance FROM PlayerSummaries WHERE PlayerID = ?
+        SELECT CashBalance FROM Players WHERE PlayerID = ?
     """, player_id)
     row = cursor.fetchone()
     conn.close()
@@ -36,8 +36,9 @@ def get_held_shares(player_id, symbol):
     conn = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
-        SELECT SUM(CASE WHEN TradeType = 'Buy' THEN Quantity ELSE -Quantity END) AS SharesHeld
-        FROM Transactions WHERE PlayerID = ? AND StockSymbol = ?
+        SELECT Quantity
+        FROM Portfolios
+        WHERE PlayerID = ? AND StockSymbol = ?
     """, player_id, symbol)
     row = cursor.fetchone()
     conn.close()
@@ -47,13 +48,12 @@ def get_held_shares(player_id, symbol):
 def get_player_portfolio(player_id):
     conn = get_connection()
     query = """
-        SELECT t.StockSymbol,
-               SUM(CASE WHEN t.TradeType = 'Buy' THEN t.Quantity ELSE -t.Quantity END) AS Shares,
-               ROUND(SUM((CASE WHEN t.TradeType = 'Buy' THEN t.Quantity ELSE -t.Quantity END) * t.Price), 2) AS Value
-        FROM Transactions t
-        WHERE t.PlayerID = ?
-        GROUP BY t.StockSymbol
-        HAVING SUM(CASE WHEN t.TradeType = 'Buy' THEN t.Quantity ELSE -t.Quantity END) > 0
+        SELECT
+            StockSymbol,
+            Quantity AS Shares,
+            ROUND(Quantity * LatestPrice, 2) AS Value
+        FROM Portfolios
+        WHERE PlayerID = ? AND Quantity > 0
     """
     df = pd.read_sql(query, conn, params=[player_id])
     conn.close()
