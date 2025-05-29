@@ -46,7 +46,11 @@ if submitted:
             try:
                 store.create_game_file(players, starting_cash, max_trades, start_date.strftime("%Y-%m-%d"), end_date.strftime("%Y-%m-%d"))
                 st.success(f"Game {game_id} created successfully!")
+
+                # ✅ Set session state
+                st.session_state["game_id"] = game_id
+                st.session_state["file_path"] = store.get_path()
+
                 st.info("Players can now go to the Trade Submission page to start building their portfolios.")
             except Exception as e:
                 st.error(f"Error creating game: {e}")
-
