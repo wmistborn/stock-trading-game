@@ -29,16 +29,28 @@ class ExcelGameStore:
         wb.save(self.file_path)
 
     def load_game_info(self):
-        df = pd.read_excel(self.file_path, sheet_name="GameInfo", header=None, index_col=0)
-        info = {
-            "GameID": df.loc["Game ID", 1],
-            "StartDate": pd.to_datetime(df.loc["Start Date", 1]),
-            "EndDate": pd.to_datetime(df.loc["End Date", 1]),
-            "StartingCash": float(df.loc["Starting Cash", 1]),
-            "MaxTradesPerDay": int(df.loc["Max Trades Per Day", 1]),
-            "Players": [p.strip() for p in df.loc["Players", 1].split(",")]
-        }
-        return info
+    df = pd.read_excel(self.file_path, sheet_name="GameInfo", header=None, index_col=0)
+
+    def safe_date(val):
+        try:
+            return pd.to_datetime(val)
+        except Exception:
+            return pd.NaT
+
+    info = {
+        "GameID": df.loc["Game ID", 1],
+        "StartDate": safe_date(df.loc["Start Date", 1]),
+        "EndDate": safe_date(df.loc["End Date", 1]),
+        "StartingCash": float(df.loc["Starting Cash", 1]),
+        "MaxTradesPerDay": int(df.loc["Max Trades Per Day", 1]),
+        "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
+    }
+
+    # Validate
+    if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
+        raise ValueError("Start Date or End Date is missing or invalid in GameInfo sheet.")
+
+    return info
 
     def read_sheet(self, sheet_name):
         return pd.read_excel(self.file_path, sheet_name=sheet_name)
