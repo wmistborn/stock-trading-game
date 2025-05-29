@@ -1,37 +1,71 @@
 # pages/2_Portfolio.py
 import streamlit as st
 import pandas as pd
-from utils.excel_store import ExcelStore
+from utils.excel_store import ExcelGameStore
+from utils.price_utils import get_price_lookup
 
-# --- Load Game File ---
-st.session_state.setdefault("workbook_path", "GameData.xlsx")
-store = ExcelStore(st.session_state["workbook_path"])
+st.set_page_config(page_title="Player Portfolio")
 
-st.title("📊 Portfolio Viewer")
+# ---------- Page Title ----------
+st.title("💼 View Portfolio")
 
-# --- Player ID Input ---
-player_id = st.text_input("Enter Your Player ID")
+# ---------- Load Game ----------
+if "game_id" not in st.session_state:
+    st.warning("Please load or create a game from the Home or Admin page.")
+    st.stop()
 
-if player_id:
-    try:
-        # Retrieve portfolio and cash balance
-        portfolio_df = store.get_player_portfolio(player_id)
-        cash = store.get_cash_balance(player_id)
+store = ExcelGameStore(st.session_state["game_id"])
+if not store.game_exists():
+    st.error("Game file not found.")
+    st.stop()
 
-        st.subheader("💼 Current Holdings")
-        if not portfolio_df.empty:
-            st.dataframe(portfolio_df, use_container_width=True)
-        else:
-            st.info("No current holdings.")
+# ---------- Load Data ----------
+holdings_df = store.read_sheet("PlayerHoldings")
+leaderboard_df = store.read_sheet("Leaderboard")
 
-        st.subheader("💵 Cash Balance")
-        st.write(f"${cash:,.2f}")
+if holdings_df.empty:
+    st.info("No trades have been executed yet.")
+    st.stop()
 
-        st.subheader("📈 Total Portfolio Value")
-        total_value = cash + portfolio_df["Value"].sum()
-        st.write(f"${total_value:,.2f}")
+# ---------- Player Selector ----------
+players = leaderboard_df["Player"].tolist()
+selected_player = st.selectbox("Select a player to view holdings", players)
 
-    except Exception as e:
-        st.error(f"Error loading portfolio: {e}")
+# ---------- Filter & Calculate ----------
+player_holdings = holdings_df[holdings_df["Player"] == selected_player].copy()
+symbols = player_holdings["StockSymbol"].tolist()
+
+with st.spinner("🔄 Fetching live prices..."):
+    price_lookup = get_price_lookup(symbols)
+
+player_holdings["CurrentPrice"] = player_holdings["StockSymbol"].map(price_lookup)
+player_holdings["TotalValue"] = player_holdings["Shares"] * player_holdings["CurrentPrice"]
+player_holdings = player_holdings.round({"CurrentPrice": 2, "TotalValue": 2})
+
+# ---------- Display Holdings ----------
+st.subheader(f"📊 Holdings for {selected_player}")
+
+if player_holdings.empty or player_holdings["Shares"].sum() == 0:
+    st.info("No active holdings.")
 else:
-    st.info("Please enter your Player ID above to view your portfolio.")
+    st.dataframe(player_holdings[["StockSymbol", "Shares", "CurrentPrice", "TotalValue"]], use_container_width=True)
+
+    total_value = player_holdings["TotalValue"].sum()
+    st.metric(label="📈 Portfolio Value", value=f"${total_value:,.2f}")
+
+# ---------- Optional: Update Sheet ----------
+if st.button("📥 Save Updated Holdings & Value"):
+    holdings_df.loc[holdings_df["Player"] == selected_player, "CurrentPrice"] = \
+        holdings_df.loc[holdings_df["Player"] == selected_player, "StockSymbol"].map(price_lookup)
+
+    holdings_df.loc[holdings_df["Player"] == selected_player, "TotalValue"] = \
+        holdings_df.loc[holdings_df["Player"] == selected_player, "Shares"] * \
+        holdings_df.loc[holdings_df["Player"] == selected_player, "StockSymbol"].map(price_lookup)
+
+    leaderboard_df.loc[leaderboard_df["Player"] == selected_player, "PortfolioValue"] = total_value
+    leaderboard_df["NetWorth"] = leaderboard_df["Cash"] + leaderboard_df["PortfolioValue"]
+    leaderboard_df = leaderboard_df.round({"Cash": 2, "PortfolioValue": 2, "NetWorth": 2})
+
+    store.update_holdings(holdings_df)
+    store.update_leaderboard(leaderboard_df)
+    st.success("Holdings and leaderboard updated successfully.")
