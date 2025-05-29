@@ -35,5 +35,5 @@ st.markdown("""
 st.markdown("""
 ---
 📅 **{0}**  
-🔧 Built with [Streamlit](https://streamlit.io/) | Game by Wills & ChatGPT
+🔧 Built with Streamlit | Game by Wills & ChatGPT
 """.format(datetime.today().strftime("%B %d, %Y")))
