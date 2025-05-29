@@ -1,25 +1,19 @@
 # pages/1_Trade_Submission.py
 import streamlit as st
 import pandas as pd
-import yfinance as yf
 from utils.db_utils import insert_trade, get_cash_balance, get_held_shares
+from utils.db_update import update_cash_balance, update_portfolio
+from utils.price_utils import get_latest_price
 
 st.title("💼 Trade Submission")
 st.markdown("""
-Use this form to submit your trades. You can enter multiple trades in one batch. Prices can be fetched live via Yahoo Finance.
+Use this form to submit your trades. You can enter multiple trades in one batch. Prices are fetched live from Yahoo Finance.
 """)
 
-# --- Player Info ---
+# --- Player ID Input ---
 player_id = st.text_input("🔑 Enter Your Player ID")
 
-# --- Fetch Market Price ---
-def fetch_live_price(symbol):
-    try:
-        return yf.Ticker(symbol).info['regularMarketPrice']
-    except:
-        return None
-
-# --- Trade Table Editor ---
+# --- Trade Entry Table ---
 def trade_form():
     st.markdown("### 📋 Trade Entry Table")
     trade_data = pd.DataFrame(
@@ -33,6 +27,7 @@ def trade_form():
     )
     return edited_df
 
+# --- Main Logic ---
 if player_id:
     trades = trade_form()
     st.markdown("---")
@@ -40,26 +35,24 @@ if player_id:
     if st.button("✅ Preview and Validate"):
         validated = []
         cash = get_cash_balance(player_id)
-        total_cost = 0
+        running_total = 0
 
         for _, row in trades.iterrows():
             symbol = row['StockSymbol'].upper()
             trade_type = row['TradeType']
             qty = int(row['Quantity'])
-            use_market = row['UseMarketPrice']
             price = float(row['Price'])
 
-            if use_market:
-                price = fetch_live_price(symbol) or 0
+            if row['UseMarketPrice']:
+                price = get_latest_price(symbol) or 0
 
             cost = round(price * qty, 2)
 
-            # Validation logic
             if trade_type == 'Buy':
-                if total_cost + cost > cash:
+                if running_total + cost > cash:
                     validated.append((symbol, "❌ Not enough cash"))
                     continue
-                total_cost += cost
+                running_total += cost
                 validated.append((symbol, f"✅ Buy - ${cost:.2f}"))
 
             elif trade_type == 'Sell':
@@ -81,10 +74,21 @@ if player_id:
             price = float(row['Price'])
 
             if row['UseMarketPrice']:
-                price = fetch_live_price(symbol) or 0
+                price = get_latest_price(symbol) or 0
 
+            total_cost = round(price * qty, 2)
+
+            # Update database
             insert_trade(player_id, symbol, trade_type, qty, price)
 
-        st.success("Trades submitted successfully!")
+            # Update portfolio and cash
+            if trade_type == "Buy":
+                update_cash_balance(player_id, -total_cost)
+                update_portfolio(player_id, symbol, qty)
+            elif trade_type == "Sell":
+                update_cash_balance(player_id, total_cost)
+                update_portfolio(player_id, symbol, -qty)
+
+        st.success("✅ Trades submitted and balances updated!")
 else:
     st.info("Please enter your Player ID above to continue.")
