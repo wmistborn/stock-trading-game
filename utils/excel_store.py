@@ -1,3 +1,4 @@
+
 import os
 import pandas as pd
 from openpyxl import load_workbook
@@ -50,7 +51,7 @@ class ExcelGameStore:
     if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
         raise ValueError("Start Date or End Date is missing or invalid in GameInfo sheet.")
 
-    return info
+        return info
 
     def read_sheet(self, sheet_name):
         return pd.read_excel(self.file_path, sheet_name=sheet_name)
