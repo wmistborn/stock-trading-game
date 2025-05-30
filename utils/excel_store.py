@@ -1,4 +1,3 @@
-#excel store
 import os
 import pandas as pd
 from openpyxl import load_workbook
@@ -30,26 +29,26 @@ class ExcelGameStore:
         wb.save(self.file_path)
 
     def load_game_info(self):
-    df = pd.read_excel(self.file_path, sheet_name="GameInfo", header=None, index_col=0)
+        df = pd.read_excel(self.file_path, sheet_name="GameInfo", header=None, index_col=0)
 
-    def safe_date(val):
-        try:
-            return pd.to_datetime(val)
-        except Exception:
-            return pd.NaT
+        def safe_date(val):
+            try:
+                return pd.to_datetime(val)
+            except Exception:
+                return pd.NaT
 
-    info = {
-        "GameID": df.loc["Game ID", 1],
-        "StartDate": safe_date(df.loc["Start Date", 1]),
-        "EndDate": safe_date(df.loc["End Date", 1]),
-        "StartingCash": float(df.loc["Starting Cash", 1]),
-        "MaxTradesPerDay": int(df.loc["Max Trades Per Day", 1]),
-        "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
-    }
+        info = {
+            "GameID": df.loc["Game ID", 1],
+            "StartDate": safe_date(df.loc["Start Date", 1]),
+            "EndDate": safe_date(df.loc["End Date", 1]),
+            "StartingCash": float(df.loc["Starting Cash", 1]),
+            "MaxTradesPerDay": int(df.loc["Max Trades Per Day", 1]),
+            "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
+        }
 
-    # Validate
-    if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
-        raise ValueError("Start Date or End Date is missing or invalid in GameInfo sheet.")
+        # Validate
+        if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
+            raise ValueError("Start Date or End Date is missing or invalid in GameInfo sheet.")
 
         return info
 
