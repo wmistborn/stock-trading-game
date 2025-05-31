@@ -35,7 +35,7 @@ class ExcelGameStore:
             try:
                 return pd.to_datetime(val)
             except Exception:
-                return pd.NaT
+                return datetime.today()
 
         try:
             starting_cash = float(df.loc["Starting Cash", 1])
