@@ -48,7 +48,8 @@ if submit:
         st.stop()
 
     # Get player cash and today’s trade count
-    player_row = holdings[holdings["Player"] == player]
+    leaderboard = store.read_sheet("Leaderboard")
+    player_row = leaderboard[leaderboard["Player"] == player]
     if player_row.empty:
         st.error(f"Player '{player}' not found in Leaderboard. Has the game been initialized?")
         st.stop()
