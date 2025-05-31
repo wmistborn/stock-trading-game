@@ -66,6 +66,11 @@ with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
     asset_type_map["💵 Cash"] = "CASH"
 
     # Sum holdings by Player and StockSymbol
+    stock_values = (
+        holdings_df.groupby(["Player", "StockSymbol"])["TotalValue"]
+        .sum()
+        .reset_index()
+    )
     stock_values["AssetType"] = stock_values["StockSymbol"].map(asset_type_map).fillna("OTHER")
 
     # Add Cash from Leaderboard
