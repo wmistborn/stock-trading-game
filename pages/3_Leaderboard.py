@@ -90,12 +90,15 @@ with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
         alt.Chart(combined_df)
         .mark_bar()
         .encode(
-            y=alt.Y("Player:N", sort=player_order, title="Player"),
+            y=alt.Y("AssetType:N", title="Asset Type"),
             x=alt.X("sum(TotalValue):Q", title="Net Worth ($)", stack="zero"),
-            color=alt.Color("StockSymbol:N", title="Asset Type"),  # ← Coloring by asset
-            tooltip=["Player", "StockSymbol", "TotalValue"]
+            color=alt.Color("AssetType:N", title="Asset Type"),
+            tooltip=["Player", "AssetType", "TotalValue"]
         )
-        .properties(height=400)
+        .facet(
+            row=alt.Row("Player:N", sort=player_order, title="Player")
+        )
+        .properties(height=40 * len(player_order))
     )
 
     st.altair_chart(chart, use_container_width=True)
