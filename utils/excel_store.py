@@ -63,7 +63,7 @@ class ExcelGameStore:
     
         info = {
            "GameID": df.loc["Game ID", 1],
-           "StartDate": safe_date(df.loc.get("Start Date", [None, None])[1], datetime.today()),
+           "StartDate": safe_date(df.loc("Start Date", [None, None])[1], datetime.today()),
            "EndDate": safe_date(df.loc.get("End Date", [None, None])[1], datetime.today()),
            "StartingCash": safe_float(df.loc.get("Starting Cash", [None, 1000])[1], 1000),
            "MaxTradesPerDay": safe_int(df.loc.get("Max Trades Per Day", [None, 3])[1], 3),
