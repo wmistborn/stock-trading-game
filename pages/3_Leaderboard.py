@@ -76,6 +76,7 @@ with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
     # Add Cash from Leaderboard
     cash_df = leaderboard_df[["Player", "Cash"]].copy()
     cash_df["StockSymbol"] = "💵 Cash"
+    cash_df["AssetType"] = "CASH"
     cash_df.rename(columns={"Cash": "TotalValue"}, inplace=True)
 
     # Combine into one allocation DataFrame
