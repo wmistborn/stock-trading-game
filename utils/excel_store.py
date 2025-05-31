@@ -31,32 +31,45 @@ class ExcelGameStore:
     def load_game_info(self):
         df = pd.read_excel(self.file_path, sheet_name="GameInfo", header=None, index_col=0)
 
-        def safe_date(val):
+        def safe_date(val, fallback=None):
             try:
                 return pd.to_datetime(val)
             except Exception:
-                return datetime.today()
+                return fallback if fallback else datetime.today()
 
-        try:
-            starting_cash = float(df.loc["Starting Cash", 1])
-        except Exception:
-            starting_cash = 1000  # Fallback default
+        def safe_float(val, default=0.0):
+            try:
+                return float(str(val).strip())
+            except Exception:
+                return default
 
-        try:
-            max_trades = int(df.loc["Max Trades Per Day", 1])
-        except Exception:
-            max_trades = 3  # Fallback default
+        def safe_int(val, default=0):
+            try:
+                return int(float(str(val).strip()))
+            except Exception:
+                return default
+
+        def safe_str(val, default=""):
+            try:
+                return str(val).strip()
+            except Exception:
+                return default
+
+        def safe_list(val):
+            try:
+                return [p.strip() for p in str(val).split(",") if p.strip()]
+            except Exception:
+                return []
 
         info = {
-            "GameID": df.loc["Game ID", 1],
-            "StartDate": safe_date(df.loc["Start Date", 1]),
-            "EndDate": safe_date(df.loc["End Date", 1]),
-            "StartingCash": starting_cash,
-            "MaxTradesPerDay": max_trades,
-            "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
+            "GameID": safe_str(df.loc.get("Game ID", [None, ""])[1], "UNKNOWN"),
+            "StartDate": safe_date(df.loc.get("Start Date", [None, None])[1], datetime.today()),
+            "EndDate": safe_date(df.loc.get("End Date", [None, None])[1], datetime.today()),
+            "StartingCash": safe_float(df.loc.get("Starting Cash", [None, 1000])[1], 1000),
+            "MaxTradesPerDay": safe_int(df.loc.get("Max Trades Per Day", [None, 3])[1], 3),
+            "Players": safe_list(df.loc.get("Players", [None, ""])[1])
         }
 
-        # Validate
         if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
             raise ValueError("Start Date or End Date is missing or invalid in GameInfo sheet.")
 
