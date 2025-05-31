@@ -5,6 +5,16 @@ from datetime import datetime
 import pandas as pd
 from utils.excel_store import ExcelGameStore
 
+
+games_dir = "games"
+
+# Create the games directory if it doesn't exist
+if not os.path.exists(games_dir):
+    os.makedirs(games_dir)
+
+# Now safely list files
+available_games = [f.replace(".xlsx", "") for f in os.listdir(games_dir) if f.endswith(".xlsx")]
+
 st.set_page_config(page_title="Start Page",)
 
 # ---------- Title ----------
