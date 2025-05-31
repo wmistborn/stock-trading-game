@@ -1,4 +1,4 @@
-# pages/2_Portfolio.py
+# pages/3_Portfolio.py
 import streamlit as st
 import pandas as pd
 from utils.excel_store import ExcelGameStore
