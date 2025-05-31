@@ -1,11 +1,13 @@
-# app.py
+# 0_Start_Page.py
 import streamlit as st
 import os
 from datetime import datetime
+import pandas as pd
+from utils.excel_store import ExcelGameStore
 
-st.set_page_config(page_title="Stock Trading Game", layout="centered")
+st.set_page_config(page_title="Start Page",)
 
-# ---------- Title & Introduction ----------
+# ---------- Title ----------
 st.title("📈 Stock Trading Game")
 st.markdown("""
 Welcome to the Stock Trading Simulation!  
@@ -14,15 +16,29 @@ Compete with friends to build the most valuable portfolio over a set time period
 
 # ---------- App Description ----------
 with st.expander("📘 How the Game Works", expanded=False):
-    st.markdown("""
-    1. **Admin** creates a game with a unique Game ID, players, rules, and time period.
-    2. **Players** submit trades within the allowed limits (e.g., 3 trades/day).
-    3. **Prices** are pulled from Yahoo Finance to simulate real trading.
-    4. **Leaderboard** updates based on portfolio values + remaining cash.
+    st.markdown(
+        """
+        Compete with friends to build the most valuable portfolio over a set time period using real-time market data.
+    
+        1. **Admin** creates a game with a unique Game ID, players, rules, and time period.
+        2. **Players** submit trades within the allowed limits (e.g., 3 trades/day).
+        3. **Prices** are pulled from Yahoo Finance to simulate real trading.
+        4. **Leaderboard** updates based on portfolio values + remaining cash.
+        """
+    )
 
-    ---
-    """)
-    st.markdown("Each game is saved as a separate Excel file for full transparency and traceability.")
+# ---------- Show Existing Games ----------
+st.subheader("📂 Current & Past Games")
+folder = "games"
+if os.path.exists(folder):
+    game_files = [f.replace(".xlsx", "") for f in os.listdir(folder) if f.endswith(".xlsx")]
+    if game_files:
+        game_df = pd.DataFrame({"Game ID": sorted(game_files)})
+        st.dataframe(game_df, use_container_width=True, hide_index=True)
+    else:
+        st.info("No games have been created yet.")
+else:
+    st.info("Game folder not found.")
 
 # ---------- Load Game ID ----------
 st.subheader("🎮 Load Existing Game")
