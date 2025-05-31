@@ -101,4 +101,18 @@ with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
         .properties(height=40 * len(player_order))
     )
 
-    st.altair_chart(chart, use_container_width=True)
+    final_chart = (
+        alt.FacetChart()
+        .facet(
+            row=alt.Row("Player:N", sort=player_order, title="Player")
+        )
+        .spec(chart)
+        .configure_facet(
+            spacing=5
+        )
+        .configure_view(
+            stroke=None
+        )
+    )
+
+    st.altair_chart(final_chart, use_container_width=True)
