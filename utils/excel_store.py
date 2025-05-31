@@ -55,12 +55,12 @@ class ExcelGameStore:
             except Exception:
                 return default
 
-        def safe_list(val):
+        def safe_list(val, default=[]):
             try:
                 return [p.strip() for p in str(val).split(",") if p.strip()]
             except Exception:
-                return []
-    
+                return default
+
         def get_cell(df, label, default=None):
             try:
                 return df.at[label, 1]
