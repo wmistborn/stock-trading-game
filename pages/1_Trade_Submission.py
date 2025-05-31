@@ -114,3 +114,47 @@ if submit:
 
         st.success(f"✅ Trade submitted successfully at ${price:.2f} per share.")
         st.info(f"💰 {player}'s cash balance updated to ${leaderboard.loc[current_row, 'Cash']:.2f}")
+
+        # 🔁 Update PlayerHoldings
+        holdings = store.read_sheet("PlayerHoldings")
+        row_mask = (holdings["Player"] == player) & (holdings["StockSymbol"] == stock)
+
+        if action == "BUY":
+            if row_mask.any():
+                holdings.loc[row_mask, "Shares"] += shares
+            else:
+                new_row = {
+                    "Player": player,
+                    "StockSymbol": stock,
+                    "Shares": shares,
+                    "CurrentPrice": price,
+                    "TotalValue": round(shares * price, 2)
+                }
+                holdings = pd.concat([holdings, pd.DataFrame([new_row])], ignore_index=True)
+
+        elif action == "SELL":
+            if row_mask.any():
+                current_shares = holdings.loc[row_mask, "Shares"].values[0]
+                updated_shares = current_shares - shares
+                if updated_shares > 0:
+                    holdings.loc[row_mask, "Shares"] = updated_shares
+                else:
+                    holdings = holdings[~row_mask]  # remove row if no shares left
+
+# 🔁 Update prices and total values
+        holdings.loc[holdings["Player"] == player, "CurrentPrice"] = \
+            holdings.loc[holdings["Player"] == player, "StockSymbol"].map(lambda sym: get_current_price(sym))
+
+        holdings["TotalValue"] = holdings["Shares"] * holdings["CurrentPrice"]
+        holdings = holdings.round({"TotalValue": 2, "CurrentPrice": 2})
+
+# 🔁 Recalculate PortfolioValue
+        portfolio_value = holdings[holdings["Player"] == player]["TotalValue"].sum()
+        leaderboard.loc[current_row, "PortfolioValue"] = portfolio_value
+        leaderboard.loc[current_row, "NetWorth"] = leaderboard.loc[current_row, "Cash"] + portfolio_value
+        leaderboard = leaderboard.round(2)
+
+# 🔁 Save updates
+        store.update_holdings(holdings)
+        store.update_leaderboard(leaderboard)
+        
