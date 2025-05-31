@@ -19,12 +19,12 @@ class ExcelGameStore:
         wb = load_workbook(TEMPLATE_PATH)
         ws = wb["GameInfo"]
 
-        ws["B2"].value = self.game_id
-        ws["B3"].value = start_date
-        ws["B4"].value = end_date
-        ws["B5"].value = starting_cash
-        ws["B6"].value = max_trades
-        ws["B7"].value = ", ".join(players)
+        ws["B1"].value = self.game_id
+        ws["B2"].value = start_date
+        ws["B3"].value = end_date
+        ws["B4"].value = starting_cash
+        ws["B5"].value = max_trades
+        ws["B6"].value = ", ".join(players)
 
         wb.save(self.file_path)
 
@@ -62,7 +62,7 @@ class ExcelGameStore:
                 return []
     
         info = {
-            "GameID": safe_str(get_cell("Game ID")),
+            "GameID": safe_str(get_cell("Game ID"), "UNKNOWN"),
             "StartDate": safe_date(get_cell("Start Date")),
             "EndDate": safe_date(get_cell("End Date")),
             "StartingCash": safe_float(get_cell("Starting Cash"), 1000),
