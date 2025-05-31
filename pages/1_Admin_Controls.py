@@ -1,4 +1,4 @@
-# pages/0_Admin_Controls.py
+# pages/1_Admin_Controls.py
 import streamlit as st
 from datetime import date
 import random
