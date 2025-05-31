@@ -37,14 +37,24 @@ class ExcelGameStore:
             except Exception:
                 return pd.NaT
 
-        info = {
-            "GameID": df.loc["Game ID", 1],
-            "StartDate": safe_date(df.loc["Start Date", 1]),
-            "EndDate": safe_date(df.loc["End Date", 1]),
-            "StartingCash": float(df.loc["Starting Cash", 1]),
-            "MaxTradesPerDay": int(df.loc["Max Trades Per Day", 1]),
-            "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
-        }
+        try:
+            starting_cash = float(df.loc["Starting Cash", 1])
+        except Exception:
+            starting_cash = 1000  # Fallback default
+
+        try:
+            max_trades = int(df.loc["Max Trades Per Day", 1])
+        except Exception:
+            max_trades = 3  # Fallback default
+
+    info = {
+        "GameID": df.loc["Game ID", 1],
+        "StartDate": safe_date(df.loc["Start Date", 1]),
+        "EndDate": safe_date(df.loc["End Date", 1]),
+        "StartingCash": starting_cash,
+        "MaxTradesPerDay": max_trades,
+        "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
+    }
 
         # Validate
         if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
