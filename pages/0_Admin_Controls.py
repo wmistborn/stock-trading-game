@@ -4,6 +4,7 @@ from datetime import date
 import random
 import string
 from utils.excel_store import ExcelGameStore
+from utils.dividends import check_and_apply_dividends
 
 st.set_page_config(page_title="Admin Controls")
 
@@ -54,3 +55,13 @@ if submitted:
                 st.info("Players can now go to the Trade Submission page to start building their portfolios.")
             except Exception as e:
                 st.error(f"Error creating game: {e}")
+# ---------- Dividend Payout Trigger ----------
+
+if st.button("📈 Apply Dividends"):
+    events = check_and_apply_dividends(store)
+    if events:
+        st.success(f"{len(events)} dividend payouts applied.")
+        st.dataframe(pd.DataFrame(events))
+    else:
+        st.info("No dividends scheduled for today.")
+
