@@ -47,33 +47,37 @@ else:
     st.success(f"🥇 Tie for Leader: **{names}** with Net Worth of **${top_net_worth:,.2f}**")
 
 # ---------- Stacked Net Worth Breakdown Chart ----------
-with st.expander("📊 View Net Worth Breakdown (Stacked)"):
+with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
 
     holdings_df = store.read_sheet("PlayerHoldings")
 
+    # Sum holdings by Player and StockSymbol
     stock_values = (
         holdings_df.groupby(["Player", "StockSymbol"])["TotalValue"]
         .sum()
         .reset_index()
     )
 
+    # Add Cash from Leaderboard
     cash_df = leaderboard_df[["Player", "Cash"]].copy()
     cash_df["StockSymbol"] = "💵 Cash"
     cash_df.rename(columns={"Cash": "TotalValue"}, inplace=True)
 
+    # Combine into one allocation DataFrame
     combined_df = pd.concat([stock_values, cash_df], ignore_index=True)
     combined_df["TotalValue"] = combined_df["TotalValue"].round(2)
 
-    # Ensure Player order matches descending Net Worth
+    # Sort players by NetWorth
     player_order = leaderboard_df.sort_values(by="NetWorth", ascending=False)["Player"].tolist()
 
+    # Create horizontal stacked bar chart
     chart = (
         alt.Chart(combined_df)
         .mark_bar()
         .encode(
-            x=alt.X("Player:N", sort=player_order, title="Player"),
-            y=alt.Y("sum(TotalValue):Q", title="Net Worth"),
-            color=alt.Color("StockSymbol:N", title="Asset"),
+            y=alt.Y("Player:N", sort=player_order, title="Player"),
+            x=alt.X("sum(TotalValue):Q", title="Net Worth ($)", stack="zero"),
+            color=alt.Color("StockSymbol:N", title="Asset Type"),  # ← Coloring by asset
             tooltip=["Player", "StockSymbol", "TotalValue"]
         )
         .properties(height=400)
