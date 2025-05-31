@@ -1,6 +1,7 @@
 # pages/3_Leaderboard.py
 import streamlit as st
 import pandas as pd
+import altair as alt
 from utils.excel_store import ExcelGameStore
 
 st.set_page_config(page_title="Leaderboard")
@@ -36,10 +37,46 @@ st.dataframe(
 )
 
 # ---------- Highlight Winner ----------
-top_player = leaderboard_df.iloc[0]
-st.success(f"🥇 Current Leader: **{top_player['Player']}** with Net Worth of **${top_player['NetWorth']:,.2f}**")
+top_net_worth = leaderboard_df["NetWorth"].max()
+leaders = leaderboard_df[leaderboard_df["NetWorth"] == top_net_worth]["Player"].tolist()
 
-# ---------- Optional Chart ----------
-with st.expander("📊 View Net Worth Chart"):
-    st.bar_chart(data=leaderboard_df.set_index("Player")[["NetWorth"]])
+if len(leaders) == 1:
+    st.success(f"🥇 Current Leader: **{leaders[0]}** with Net Worth of **${top_net_worth:,.2f}**")
+else:
+    names = ", ".join(leaders)
+    st.success(f"🥇 Tie for Leader: **{names}** with Net Worth of **${top_net_worth:,.2f}**")
 
+# ---------- Stacked Net Worth Breakdown Chart ----------
+with st.expander("📊 View Net Worth Breakdown (Stacked)"):
+
+    holdings_df = store.read_sheet("PlayerHoldings")
+
+    stock_values = (
+        holdings_df.groupby(["Player", "StockSymbol"])["TotalValue"]
+        .sum()
+        .reset_index()
+    )
+
+    cash_df = leaderboard_df[["Player", "Cash"]].copy()
+    cash_df["StockSymbol"] = "💵 Cash"
+    cash_df.rename(columns={"Cash": "TotalValue"}, inplace=True)
+
+    combined_df = pd.concat([stock_values, cash_df], ignore_index=True)
+    combined_df["TotalValue"] = combined_df["TotalValue"].round(2)
+
+    # Ensure Player order matches descending Net Worth
+    player_order = leaderboard_df.sort_values(by="NetWorth", ascending=False)["Player"].tolist()
+
+    chart = (
+        alt.Chart(combined_df)
+        .mark_bar()
+        .encode(
+            x=alt.X("Player:N", sort=player_order, title="Player"),
+            y=alt.Y("sum(TotalValue):Q", title="Net Worth"),
+            color=alt.Color("StockSymbol:N", title="Asset"),
+            tooltip=["Player", "StockSymbol", "TotalValue"]
+        )
+        .properties(height=400)
+    )
+
+    st.altair_chart(chart, use_container_width=True)
