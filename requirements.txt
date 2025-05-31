@@ -6,3 +6,4 @@ openpyxl
 requests
 black
 watchdog
+altair
