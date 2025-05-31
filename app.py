@@ -27,15 +27,23 @@ with st.expander("📘 How the Game Works", expanded=False):
 # ---------- Load Game ID ----------
 st.subheader("🎮 Load Existing Game")
 
-game_id = st.text_input("Enter Game ID:", placeholder="e.g., 4073")
-if st.button("Load Game"):
-    file_path = f"data/active_games/{game_id}.xlsx"
-    if os.path.exists(file_path):
-        st.success(f"Game {game_id} loaded! Use the navigation menu to start trading.")
-        st.session_state["game_id"] = game_id
-        st.session_state["file_path"] = file_path
-    else:
-        st.error("Game not found. Please check the Game ID or contact the admin.")
+# Scan the active_games directory
+games_dir = "data/active_games"
+available_games = [f.replace(".xlsx", "") for f in os.listdir(games_dir) if f.endswith(".xlsx")]
+
+if not available_games:
+    st.info("No active games found. Please create one using the Admin Controls.")
+else:
+    selected_game = st.selectbox("Select a Game ID", sorted(available_games))
+
+    if st.button("🔓 Load Selected Game"):
+        file_path = os.path.join(games_dir, f"{selected_game}.xlsx")
+        if os.path.exists(file_path):
+            st.session_state["game_id"] = selected_game
+            st.session_state["file_path"] = file_path
+            st.success(f"Game {selected_game} loaded! Use the menu to view or submit trades.")
+        else:
+            st.error("Selected file no longer exists.")
 
 # ---------- Footer ----------
 st.markdown("---")
