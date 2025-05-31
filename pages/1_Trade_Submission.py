@@ -23,8 +23,8 @@ if not store.game_exists():
 game_info = store.load_game_info()
 players = game_info["Players"]
 max_trades = game_info["MaxTradesPerDay"]
-start_date = game_info["StartDate"]
-end_date = game_info["EndDate"]
+start_date = game_info["StartDate"].date()
+end_date = game_info["EndDate"].date()
 
 # ---------- Trade Submission Form ----------
 with st.form("trade_form"):
