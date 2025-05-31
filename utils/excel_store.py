@@ -28,6 +28,23 @@ class ExcelGameStore:
 
         wb.save(self.file_path)
 
+        leaderboard_df = pd.DataFrame({
+        "Player": players,
+        "Cash": [starting_cash] * len(players),
+        "PortfolioValue": [0.0] * len(players),
+        "NetWorth": [starting_cash] * len(players)
+        })
+        self.write_sheet("Leaderboard", leaderboard_df)
+
+        holdings_df = pd.DataFrame(columns=["Player", "StockSymbol", "Shares", "CurrentPrice", "TotalValue"])
+        self.write_sheet("PlayerHoldings", holdings_df)
+
+        tradequeue_df = pd.DataFrame(columns=["TradeID", "Player", "StockSymbol", "Action", "Shares", "RequestedAt", "Status", "Notes"])
+        self.write_sheet("TradeQueue", tradequeue_df)
+
+        transactions_df = pd.DataFrame(columns=["TransactionID", "Player", "StockSymbol", "Action", "Shares", "Price", "TotalValue", "ExecutedAt"])
+        self.write_sheet("Transactions", transactions_df)
+
     def load_game_info(self):
         df = pd.read_excel(self.file_path, sheet_name="GameInfo", header=None, index_col=0)
 
@@ -87,23 +104,6 @@ class ExcelGameStore:
     def write_sheet(self, sheet_name, df):
         with pd.ExcelWriter(self.file_path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
             df.to_excel(writer, sheet_name=sheet_name, index=False)
-
-    leaderboard_df = pd.DataFrame({
-        "Player": players,
-        "Cash": [starting_cash] * len(players),
-        "PortfolioValue": [0.0] * len(players),
-        "NetWorth": [starting_cash] * len(players)
-    })
-    self.write_sheet("Leaderboard", leaderboard_df)
-
-    # Also create blank PlayerHoldings sheet
-    holdings_df = pd.DataFrame(columns=["Player", "StockSymbol", "Shares", "CurrentPrice", "TotalValue"])
-    self.write_sheet("PlayerHoldings", holdings_df)
-
-    # And empty TradeQueue and Transactions if needed
-    self.write_sheet("TradeQueue", pd.DataFrame(columns=["TradeID", "Player", "StockSymbol", "Action", "Shares", "RequestedAt", "Status", "Notes"]))
-    self.write_sheet("Transactions", pd.DataFrame(columns=["TransactionID", "Player", "StockSymbol", "Action", "Shares", "Price", "TotalValue", "ExecutedAt"]))
-
 
     def append_trades(self, trade_df):
         existing = self.read_sheet("TradeQueue")
