@@ -88,6 +88,23 @@ class ExcelGameStore:
         with pd.ExcelWriter(self.file_path, engine="openpyxl", mode="a", if_sheet_exists="replace") as writer:
             df.to_excel(writer, sheet_name=sheet_name, index=False)
 
+    leaderboard_df = pd.DataFrame({
+        "Player": players,
+        "Cash": [starting_cash] * len(players),
+        "PortfolioValue": [0.0] * len(players),
+        "NetWorth": [starting_cash] * len(players)
+    })
+    self.write_sheet("Leaderboard", leaderboard_df)
+
+    # Also create blank PlayerHoldings sheet
+    holdings_df = pd.DataFrame(columns=["Player", "StockSymbol", "Shares", "CurrentPrice", "TotalValue"])
+    self.write_sheet("PlayerHoldings", holdings_df)
+
+    # And empty TradeQueue and Transactions if needed
+    self.write_sheet("TradeQueue", pd.DataFrame(columns=["TradeID", "Player", "StockSymbol", "Action", "Shares", "RequestedAt", "Status", "Notes"]))
+    self.write_sheet("Transactions", pd.DataFrame(columns=["TransactionID", "Player", "StockSymbol", "Action", "Shares", "Price", "TotalValue", "ExecutedAt"]))
+
+
     def append_trades(self, trade_df):
         existing = self.read_sheet("TradeQueue")
         updated = pd.concat([existing, trade_df], ignore_index=True)
