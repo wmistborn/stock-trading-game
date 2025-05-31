@@ -61,13 +61,19 @@ class ExcelGameStore:
             except Exception:
                 return []
     
+        def get_cell(df, label, default=None):
+            try:
+                return df.at[label, 1]
+            except Exception:
+                return default
+
         info = {
-           "GameID": df.loc["Game ID", 1],
-           "StartDate": safe_date(df.loc("Start Date", [None, None])[1], datetime.today()),
-           "EndDate": safe_date(df.loc.get("End Date", [None, None])[1], datetime.today()),
-           "StartingCash": safe_float(df.loc.get("Starting Cash", [None, 1000])[1], 1000),
-           "MaxTradesPerDay": safe_int(df.loc.get("Max Trades Per Day", [None, 3])[1], 3),
-           "Players": safe_list(df.loc.get("Players", [None, ""])[1])
+            "GameID": safe_str(get_cell(df, "Game ID"), "UNKNOWN"),
+            "StartDate": safe_date(get_cell(df, "Start Date"), datetime.today()),
+            "EndDate": safe_date(get_cell(df, "End Date"), datetime.today()),
+            "StartingCash": safe_float(get_cell(df, "Starting Cash"), 1000),
+            "MaxTradesPerDay": safe_int(get_cell(df, "Max Trades Per Day"), 3),
+            "Players": safe_list(get_cell(df, "Players"), [])
         }
 
         if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
