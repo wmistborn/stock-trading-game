@@ -93,8 +93,8 @@ with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
         alt.Chart(combined_df)
         .mark_bar()
         .encode(
-             x=alt.X("Player:N", sort=player_order, title="Player"),
-            y=alt.Y("sum(TotalValue):Q", title="Net Worth ($)", stack="zero"),
+             x=alt.X("Player:N", sort=player_order, title=""),
+            y=alt.Y("sum(TotalValue):Q", title="", stack="zero"),
             color=alt.Color("AssetType:N", title="Asset Type"),
             tooltip=["Player", "AssetType", "TotalValue"]
         )
