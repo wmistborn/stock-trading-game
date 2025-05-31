@@ -86,33 +86,18 @@ with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
     player_order = leaderboard_df.sort_values(by="NetWorth", ascending=False)["Player"].tolist()
 
     # Create horizontal stacked bar chart
+    player_colors = alt.Scale(domain=player_order, scheme='category10')
+
     chart = (
         alt.Chart(combined_df)
         .mark_bar()
         .encode(
-            y=alt.Y("AssetType:N", title="Asset Type"),
-            x=alt.X("sum(TotalValue):Q", title="Net Worth ($)", stack="zero"),
+             x=alt.X("Player:N", sort=player_order, title="Player"),
+            y=alt.Y("sum(TotalValue):Q", title="Net Worth ($)", stack="zero"),
             color=alt.Color("AssetType:N", title="Asset Type"),
             tooltip=["Player", "AssetType", "TotalValue"]
         )
-        .facet(
-            row=alt.Row("Player:N", sort=player_order, title="Player")
-        )
-        .properties(height=40 * len(player_order))
+        .properties(height=400)
     )
 
-    final_chart = (
-        alt.FacetChart()
-        .facet(
-            row=alt.Row("Player:N", sort=player_order, title="Player")
-        )
-        .spec(chart)
-        .configure_facet(
-            spacing=5
-        )
-        .configure_view(
-            stroke=None
-        )
-    )
-
-    st.altair_chart(final_chart, use_container_width=True)
+    st.altair_chart(chart, use_container_width=True)
