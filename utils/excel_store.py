@@ -62,12 +62,12 @@ class ExcelGameStore:
                 return []
     
         info = {
-            "GameID": safe_str(get_cell("Game ID"), "UNKNOWN"),
-            "StartDate": safe_date(get_cell("Start Date")),
-            "EndDate": safe_date(get_cell("End Date")),
-            "StartingCash": safe_float(get_cell("Starting Cash"), 1000),
-            "MaxTradesPerDay": safe_int(get_cell("Max Trades Per Day"), 3),
-            "Players": safe_list(get_cell("Players"))
+           "GameID": safe_str(df.loc.get("Game ID", [None, ""])[1], "UNKNOWN"),
+           "StartDate": safe_date(df.loc.get("Start Date", [None, None])[1], datetime.today()),
+           "EndDate": safe_date(df.loc.get("End Date", [None, None])[1], datetime.today()),
+           "StartingCash": safe_float(df.loc.get("Starting Cash", [None, 1000])[1], 1000),
+           "MaxTradesPerDay": safe_int(df.loc.get("Max Trades Per Day", [None, 3])[1], 3),
+           "Players": safe_list(df.loc.get("Players", [None, ""])[1])
         }
 
         if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
