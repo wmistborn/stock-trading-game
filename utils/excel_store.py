@@ -60,7 +60,7 @@ class ExcelGameStore:
                 return [p.strip() for p in str(val).split(",") if p.strip()]
             except Exception:
                 return []
-
+        st.write(df)  # Only during testing
         info = {
             "GameID": safe_str(get_cell("Game ID"), "UNKNOWN"),
             "StartDate": safe_date(get_cell("Start Date")),
