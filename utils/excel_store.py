@@ -47,14 +47,14 @@ class ExcelGameStore:
         except Exception:
             max_trades = 3  # Fallback default
 
-    info = {
-        "GameID": df.loc["Game ID", 1],
-        "StartDate": safe_date(df.loc["Start Date", 1]),
-        "EndDate": safe_date(df.loc["End Date", 1]),
-        "StartingCash": starting_cash,
-        "MaxTradesPerDay": max_trades,
-        "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
-    }
+        info = {
+            "GameID": df.loc["Game ID", 1],
+            "StartDate": safe_date(df.loc["Start Date", 1]),
+            "EndDate": safe_date(df.loc["End Date", 1]),
+            "StartingCash": starting_cash,
+            "MaxTradesPerDay": max_trades,
+            "Players": [p.strip() for p in str(df.loc["Players", 1]).split(",") if p.strip()]
+        }
 
         # Validate
         if pd.isna(info["StartDate"]) or pd.isna(info["EndDate"]):
