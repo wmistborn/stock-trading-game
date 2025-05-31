@@ -55,14 +55,15 @@ def get_asset_type(ticker):
     except:
         return "Unknown"
 
-unique_symbols = holdings_df["StockSymbol"].unique()
-asset_type_map = {symbol: get_asset_type(symbol) for symbol in unique_symbols}
-asset_type_map["💵 Cash"] = "CASH"
+
 
 # ---------- Stacked Net Worth Breakdown Chart ----------
 with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
 
     holdings_df = store.read_sheet("PlayerHoldings")
+    unique_symbols = holdings_df["StockSymbol"].unique()
+    asset_type_map = {symbol: get_asset_type(symbol) for symbol in unique_symbols}
+    asset_type_map["💵 Cash"] = "CASH"
 
     # Sum holdings by Player and StockSymbol
     stock_values["AssetType"] = stock_values["StockSymbol"].map(asset_type_map).fillna("OTHER")
