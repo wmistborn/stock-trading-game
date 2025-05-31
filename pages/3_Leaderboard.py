@@ -2,6 +2,7 @@
 import streamlit as st
 import pandas as pd
 import altair as alt
+import yfinance as yf
 from utils.excel_store import ExcelGameStore
 
 st.set_page_config(page_title="Leaderboard")
@@ -46,17 +47,25 @@ else:
     names = ", ".join(leaders)
     st.success(f"🥇 Tie for Leader: **{names}** with Net Worth of **${top_net_worth:,.2f}**")
 
+#Fetch Asset Type
+def get_asset_type(ticker):
+    try:
+        info = yf.Ticker(ticker).info
+        return info.get("quoteType", "Unknown").upper()
+    except:
+        return "Unknown"
+
+unique_symbols = holdings_df["StockSymbol"].unique()
+asset_type_map = {symbol: get_asset_type(symbol) for symbol in unique_symbols}
+asset_type_map["💵 Cash"] = "CASH"
+
 # ---------- Stacked Net Worth Breakdown Chart ----------
 with st.expander("📊 View Net Worth Breakdown (Stacked by Asset Type)"):
 
     holdings_df = store.read_sheet("PlayerHoldings")
 
     # Sum holdings by Player and StockSymbol
-    stock_values = (
-        holdings_df.groupby(["Player", "StockSymbol"])["TotalValue"]
-        .sum()
-        .reset_index()
-    )
+    stock_values["AssetType"] = stock_values["StockSymbol"].map(asset_type_map).fillna("OTHER")
 
     # Add Cash from Leaderboard
     cash_df = leaderboard_df[["Player", "Cash"]].copy()
