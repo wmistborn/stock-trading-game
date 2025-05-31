@@ -1,5 +1,6 @@
 # pages/1_Trade_Submission.py
 import streamlit as st
+import pandas as pd
 from datetime import datetime
 from utils.excel_store import ExcelGameStore
 from utils.price_utils import get_current_price
