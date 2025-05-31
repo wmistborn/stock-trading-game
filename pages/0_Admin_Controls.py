@@ -57,11 +57,21 @@ if submitted:
                 st.error(f"Error creating game: {e}")
 # ---------- Dividend Payout Trigger ----------
 
-if st.button("📈 Apply Dividends"):
-    events = check_and_apply_dividends(store)
-    if events:
-        st.success(f"{len(events)} dividend payouts applied.")
-        st.dataframe(pd.DataFrame(events))
+st.subheader("💸 Game Maintenance")
+
+if "game_id" in st.session_state:
+    store = ExcelGameStore(st.session_state["game_id"])
+
+    if store.game_exists():
+        if st.button("📈 Apply Dividends"):
+            events = check_and_apply_dividends(store)
+            if events:
+                st.success(f"{len(events)} dividend payouts applied.")
+                st.dataframe(pd.DataFrame(events))
+            else:
+                st.info("No dividends scheduled for today.")
     else:
-        st.info("No dividends scheduled for today.")
+        st.warning("No existing game file found. Create or load a game to enable dividend payouts.")
+else:
+    st.info("Please load or create a game to enable dividend payouts.")
 
